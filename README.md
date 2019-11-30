@@ -33,7 +33,7 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Funkcjonalność programu pozostanie taka sama.
 
 #### Metryki:
-* Indeks dostępności: 74.85
-* Złożoność cyklomatyczna: 6
+* Indeks dostępności: 57.54
+* Złożoność cyklomatyczna: generate_stockyard_split_repeats_files - B (8), generate_stockyard_repeats_files - B (6)
 * Sprzężenie klas: brak (interesujący nas fragment kodu składa się na razie z funkcji)
-* Wiersze kodu: 84
+* Wiersze kodu: 165

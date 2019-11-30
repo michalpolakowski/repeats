@@ -25,11 +25,12 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Należy przepisać sposób pobierania danych z bazy danych, gdyż występuje tam fragment kodu, który jest powtórzony trzykrotnie z jedynie innym napisem wejściowym.
 * Należy zasotosować Programowanie Obiektowe.
 * Rozbicie funkcji na kilka metod, które będą wykonywać konkretne zadania wewnątrz obiektu.
+* Kod musi być bardziej pythonowy, gdyż osoba pisząca go wczesniej musiała na codzień uzywać innego języka programowania.
 
 #### Oczekiwania po refaktoryzacji
 * Zmiana struktury kodu, by był bliższy programowaniu obiektowemu.
 * Czytelność oraz łatwość utrzymania kodu będzie wyższa.
-* Funkcjonalność programu pozstanie taka sama.
+* Funkcjonalność programu pozostanie taka sama.
 
 #### Metryki:
 * Indeks dostępności: 74.85

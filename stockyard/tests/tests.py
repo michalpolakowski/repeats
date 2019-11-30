@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from stockyard.models import Laboratory
 from stockyard.tests.factories import RepeatFactory
-from stockyard.utils.stockyard_files import generate_stockyard_repeats_files
+from stockyard.utils.stockyard_files import generate_stockyard_repeats_files, generate_stockyard_split_repeats_files
 
 
 class StockyardFilesTestCase(TestCase):
@@ -15,3 +15,7 @@ class StockyardFilesTestCase(TestCase):
         self.assertEqual(len(results['files']), 4)
         self.assertEqual(results['samples'], 80)
 
+    def test_stockyard_recall_split(self):
+        results = generate_stockyard_split_repeats_files()
+        self.assertEqual(len(results['files']), 7)
+        self.assertEqual(results['samples'], 80)

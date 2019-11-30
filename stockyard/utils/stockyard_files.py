@@ -95,7 +95,8 @@ def generate_stockyard_split_repeats_files():
         .exclude(batch_template__icontains="Pain_MA") \
         .exclude(batch_template__icontains="ETS_MA") \
         .exclude(batch_template__icontains="Barbs_MA") \
-        .filter(disabled=False, created__date=datetime.date.today(), laboratory__name=settings.PTOX_MAIN)
+        .filter(disabled=False, created__date=datetime.date.today(), laboratory__name='california')
+    no_of_samples = len(stockyard_recall_repeat_samples)
 
     list_of_querysets = []
 
@@ -155,12 +156,9 @@ def generate_stockyard_split_repeats_files():
 
             j += 1
 
-            for file in generated_files_of_type:
-                os.remove('{}/{}'.format(settings.LOCAL_STOCKYARD_SPLIT_REPEAT, file))
-
         i += 1
 
     return {
         'files': all_generated_files,
-        'samples': len(stockyard_recall_repeat_samples)
+        'samples': no_of_samples
     }

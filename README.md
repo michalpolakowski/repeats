@@ -35,10 +35,10 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Fragmenty kodu nie będą się powtarzać.
 
 #### Metryki:
-* Indeks dostępności: 74.85
-* Złożoność cyklomatyczna: 6
+* Indeks dostępności: 57.54
+* Złożoność cyklomatyczna: generate_stockyard_split_repeats_files - B (8), generate_stockyard_repeats_files - B (6)
 * Sprzężenie klas: brak (interesujący nas fragment kodu składa się na razie z funkcji)
-* Wiersze kodu: 84
+* Wiersze kodu: 165
 
 ---
 ### Wersja 0
@@ -49,7 +49,7 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Zmieniona jest forma zapisu filtra danych z bazy danych.
 
 #### Metryki:
-* Indeks dostępności: 57.54
-* Złożoność cyklomatyczna: generate_stockyard_split_repeats_files - B (8), generate_stockyard_repeats_files - B (6)
+* Indeks dostępności: 57.47
+* Złożoność cyklomatyczna: generate_stockyard_split_repeats_files - B (9), generate_stockyard_repeats_files - B (7)
 * Sprzężenie klas: brak (interesujący nas fragment kodu składa się na razie z funkcji)
 * Wiersze kodu: 165

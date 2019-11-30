@@ -1,9 +1,11 @@
+import operator
 import os
+from functools import reduce
 from itertools import zip_longest
 
 import datetime
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from stockyard.models import Repeat
 
@@ -37,23 +39,22 @@ def generate_file_name():
 
 
 def generate_stockyard_repeats_files():
-    # generate stockyard recall files, excluding MA lab and client requested
-    stockyard_recall_repeat_samples = Repeat.objects.exclude(comment__icontains="client requested")\
-        .exclude(batch_template__icontains="Pain_MA") \
-        .exclude(batch_template__icontains="ETS_MA") \
-        .exclude(batch_template__icontains="Barbs_MA") \
-        .filter(disabled=False, created__date=datetime.date.today(), laboratory__name='california')
+    excludes_list = ['Pain_MA', 'ETS_MA', 'Barbs_MA']
+
+    stockyard_recall_repeat_samples = Repeat.objects.filter(disabled=False, created__date=datetime.date.today(),
+                                                            laboratory__name='california') \
+        .exclude(reduce(operator.or_, (Q(batch_template__icontains=item) for item in excludes_list))) \
+        .exclude(comment__icontains="client requested")
 
     stockyard_recall_repeat_samples_grouped = grouper(stockyard_recall_repeat_samples, settings.STOCKYARD_GROUP_COUNT)
 
-    i = 1
     files_path = settings.LOCAL_STOCKYARD_REPEAT
     check_path(files_path)
     file_name = generate_file_name()
 
     generated_files = []
 
-    for group in stockyard_recall_repeat_samples_grouped:
+    for i, group in enumerate(stockyard_recall_repeat_samples_grouped, 1):
         generated_file_name = file_name + str(i) + '.txt'
         stockyard_file = os.path.join(files_path, generated_file_name)
         row = []
@@ -91,11 +92,12 @@ def generate_stockyard_split_repeats_files():
         3: 'dilution',
         4: 'other'
     }
-    stockyard_recall_repeat_samples = Repeat.objects.exclude(comment__icontains="client requested") \
-        .exclude(batch_template__icontains="Pain_MA") \
-        .exclude(batch_template__icontains="ETS_MA") \
-        .exclude(batch_template__icontains="Barbs_MA") \
-        .filter(disabled=False, created__date=datetime.date.today(), laboratory__name='california')
+    excludes_list = ['Pain_MA', 'ETS_MA', 'Barbs_MA']
+
+    stockyard_recall_repeat_samples = Repeat.objects.filter(disabled=False, created__date=datetime.date.today(),
+                                                            laboratory__name='california') \
+        .exclude(reduce(operator.or_, (Q(batch_template__icontains=item) for item in excludes_list))) \
+        .exclude(comment__icontains="client requested")
     no_of_samples = len(stockyard_recall_repeat_samples)
 
     list_of_querysets = []
@@ -119,17 +121,15 @@ def generate_stockyard_split_repeats_files():
         .exclude(id__in=dilution_ids)
     list_of_querysets.append(stockyard_recall_repeat_samples)
 
-    i = 1
     all_generated_files = []
-    for queryset in list_of_querysets:
-        j = 1
+    for i, queryset in enumerate(list_of_querysets, 1):
         generated_files_of_type = []
         queryset_grouped = grouper(queryset, settings.STOCKYARD_GROUP_COUNT)
         files_path = settings.LOCAL_STOCKYARD_SPLIT_REPEAT
         check_path(files_path)
         file_name = generate_file_name()
 
-        for group in queryset_grouped:
+        for j, group in enumerate(queryset_grouped, 1):
             generated_file_name = file_name + f'{queryset_types[i]}-' + str(j) + '.txt'
             stockyard_file = os.path.join(files_path, generated_file_name)
             row = []
@@ -153,10 +153,6 @@ def generate_stockyard_split_repeats_files():
 
             generated_files_of_type.append(generated_file_name)
             all_generated_files.append(generated_file_name)
-
-            j += 1
-
-        i += 1
 
     return {
         'files': all_generated_files,

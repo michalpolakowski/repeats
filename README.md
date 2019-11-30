@@ -26,11 +26,27 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Należy zasotosować Programowanie Obiektowe.
 * Rozbicie funkcji na kilka metod, które będą wykonywać konkretne zadania wewnątrz obiektu.
 * Kod musi być bardziej pythonowy, gdyż osoba pisząca go wczesniej musiała na codzień uzywać innego języka programowania.
+* Istnieją fragmenty kodu, które się powtarzają, trzeba je przenieść do wydzielonych funkcji.
 
 #### Oczekiwania po refaktoryzacji
 * Zmiana struktury kodu, by był bliższy programowaniu obiektowemu.
 * Czytelność oraz łatwość utrzymania kodu będzie wyższa.
 * Funkcjonalność programu pozostanie taka sama.
+* Fragmenty kodu nie będą się powtarzać.
+
+#### Metryki:
+* Indeks dostępności: 74.85
+* Złożoność cyklomatyczna: 6
+* Sprzężenie klas: brak (interesujący nas fragment kodu składa się na razie z funkcji)
+* Wiersze kodu: 84
+
+---
+### Wersja 0
+Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
+
+#### Dokonane refaktoryzacje:
+* Iteracje zmienione są w taki sposób, że zamiast inicjalizacji indeksu i jego zmieniania używamy wbudowanej funkcji enumerate.
+* Zmieniona jest forma zapisu filtra danych z bazy danych.
 
 #### Metryki:
 * Indeks dostępności: 57.54

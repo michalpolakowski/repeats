@@ -3,6 +3,7 @@ import operator
 import os
 from functools import reduce
 from itertools import zip_longest, chain
+from typing import List, Union, Dict, Iterable, Tuple
 
 from django.conf import settings
 from django.db.models import Count, Q, QuerySet
@@ -22,7 +23,7 @@ def check_path(path):
 
 
 class StockyardRepeatsFilesGenerator:
-    def __init__(self, split):
+    def __init__(self, split: bool):
         self._split = split
         self._files_path = settings.LOCAL_STOCKYARD_SPLIT_REPEAT if self._split else settings.LOCAL_STOCKYARD_REPEAT
         self._file_name = self._generate_file_name()
@@ -41,16 +42,16 @@ class StockyardRepeatsFilesGenerator:
         }
 
     @staticmethod
-    def _generate_file_name():
+    def _generate_file_name() -> str:
         today = str(datetime.datetime.now().date())
         return today + settings.STOCKAYRD_FILE_NAME
 
-    def generate_files(self):
+    def generate_files(self) -> Dict[str, Union[List[str], int]]:
         if self._split:
             return self._generate_stockyard_split_repeats_files()
         return self._generate_stockyard_repeats_files()
 
-    def _generate_stockyard_repeats_files(self):
+    def _generate_stockyard_repeats_files(self) -> Dict[str, Union[List[str], int]]:
         stockyard_recall_repeat_samples_grouped = self._grouper(self._stockyard_recall_repeat_samples,
                                                                 settings.STOCKYARD_GROUP_COUNT)
         check_path(self._files_path)
@@ -68,7 +69,7 @@ class StockyardRepeatsFilesGenerator:
             'samples': len(self._stockyard_recall_repeat_samples)
         }
 
-    def _generate_stockyard_split_repeats_files(self):
+    def _generate_stockyard_split_repeats_files(self) -> Dict[str, Union[List[str], int]]:
         all_generated_files = []
 
         list_of_querysets = self._split_querysets()
@@ -90,7 +91,7 @@ class StockyardRepeatsFilesGenerator:
             'samples': len(self._stockyard_recall_repeat_samples)
         }
 
-    def _split_querysets(self):
+    def _split_querysets(self) -> List[QuerySet]:
         list_of_querysets = []
 
         dupes = self._stockyard_recall_repeat_samples.values('accession').annotate(Count('id')).order_by().filter(
@@ -120,7 +121,7 @@ class StockyardRepeatsFilesGenerator:
         return list_of_querysets
 
     @staticmethod
-    def _grouper(iterable, n: int, fillvalue=None):
+    def _grouper(iterable, n: int, fillvalue=None) -> Iterable[Tuple[Repeat]]:
         """
         Collect data into fixed-length chunks or blocks
         :param iterable: collection to group

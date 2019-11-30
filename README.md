@@ -67,3 +67,14 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Sprzężenie klas: StockyardRepeatsFilesGenerator - 24
 * Wiersze kodu: 147
 
+--- 
+### Wersja ∞
+
+#### Dokonane refaktoryzacje:
+* dodanie typowania
+
+#### Metryki:
+- Indeks dostępności: 64.05
+- Złożoność cyklomatyczna: 3
+- Sprzężenie klas: 25
+- Wiersze kodu: 148

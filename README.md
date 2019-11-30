@@ -41,8 +41,7 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Wiersze kodu: 165
 
 ---
-### Wersja 0
-Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
+### Wersja 1
 
 #### Dokonane refaktoryzacje:
 * Iteracje zmienione są w taki sposób, że zamiast inicjalizacji indeksu i jego zmieniania używamy wbudowanej funkcji enumerate.
@@ -53,3 +52,18 @@ Wersja 0 to początkowa wersja kodu, która będzie poddawana dalszym obróbkom.
 * Złożoność cyklomatyczna: generate_stockyard_split_repeats_files - B (9), generate_stockyard_repeats_files - B (7)
 * Sprzężenie klas: brak (interesujący nas fragment kodu składa się na razie z funkcji)
 * Wiersze kodu: 165
+
+---
+### Wersja 2
+
+#### Dokonane refaktoryzacje:
+* Całość została przepisana według kanonu programowania obiektowego.
+* Z kodu zostały usuniętę większe powtórzenia.
+* Ze względu na zamianę funkcji na klasę delikatnej modyfikacji musiały ulec również testy.
+
+#### Metryki:
+* Indeks dostępności: 64.25
+* Złożoność cyklomatyczna: StockyardRepeatsFilesGenerator - A (3)
+* Sprzężenie klas: StockyardRepeatsFilesGenerator - 24
+* Wiersze kodu: 147
+

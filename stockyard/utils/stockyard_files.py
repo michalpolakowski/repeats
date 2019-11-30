@@ -1,11 +1,11 @@
+import datetime
 import operator
 import os
 from functools import reduce
-from itertools import zip_longest
+from itertools import zip_longest, chain
 
-import datetime
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count, Q, QuerySet
 
 from stockyard.models import Repeat
 
@@ -21,140 +21,126 @@ def check_path(path):
         os.makedirs(path)
 
 
-def grouper(iterable, n, fillvalue=None):
-    """
-    Collect data into fixed-length chunks or blocks
-    :param iterable: collection to group
-    :param n: how many elements in group
-    :param fillvalue: value to fill
-    :return: grouped collection
-    """
-    args = [iter(iterable)] * n
-    return zip_longest(fillvalue=fillvalue, *args)
+class StockyardRepeatsFilesGenerator:
+    def __init__(self, split):
+        self._split = split
+        self._files_path = settings.LOCAL_STOCKYARD_SPLIT_REPEAT if self._split else settings.LOCAL_STOCKYARD_REPEAT
+        self._file_name = self._generate_file_name()
+        excludes_list = ['Pain_MA', 'ETS_MA', 'Barbs_MA']
+        todays_repeats = Repeat.objects.filter(created__date=datetime.date.today(),
+                                               laboratory__name='california')
+        reps_with_excluded_assays = todays_repeats.exclude(
+            reduce(operator.or_, (Q(batch_template__icontains=item) for item in excludes_list))
+        )
+        self._stockyard_recall_repeat_samples = reps_with_excluded_assays.exclude(comment__icontains="client requested")
+        self._queryset_types = {
+            1: 'multiple',
+            2: 'methdl',
+            3: 'dilution',
+            4: 'other'
+        }
 
+    @staticmethod
+    def _generate_file_name():
+        today = str(datetime.datetime.now().date())
+        return today + settings.STOCKAYRD_FILE_NAME
 
-def generate_file_name():
-    today = str(datetime.datetime.now().date())
-    return today + settings.STOCKAYRD_FILE_NAME
+    def generate_files(self):
+        if self._split:
+            return self._generate_stockyard_split_repeats_files()
+        return self._generate_stockyard_repeats_files()
 
+    def _generate_stockyard_repeats_files(self):
+        stockyard_recall_repeat_samples_grouped = self._grouper(self._stockyard_recall_repeat_samples,
+                                                                settings.STOCKYARD_GROUP_COUNT)
+        check_path(self._files_path)
 
-def generate_stockyard_repeats_files():
-    excludes_list = ['Pain_MA', 'ETS_MA', 'Barbs_MA']
+        generated_files = []
 
-    stockyard_recall_repeat_samples = Repeat.objects.filter(disabled=False, created__date=datetime.date.today(),
-                                                            laboratory__name='california') \
-        .exclude(reduce(operator.or_, (Q(batch_template__icontains=item) for item in excludes_list))) \
-        .exclude(comment__icontains="client requested")
+        for i, group in enumerate(stockyard_recall_repeat_samples_grouped, 1):
+            generated_file_name = f'{self._file_name}{str(i)}.txt'
+            self._save_row_to_file(group, generated_file_name)
 
-    stockyard_recall_repeat_samples_grouped = grouper(stockyard_recall_repeat_samples, settings.STOCKYARD_GROUP_COUNT)
+            generated_files.append(generated_file_name)
 
-    files_path = settings.LOCAL_STOCKYARD_REPEAT
-    check_path(files_path)
-    file_name = generate_file_name()
+        return {
+            'files': generated_files,
+            'samples': len(self._stockyard_recall_repeat_samples)
+        }
 
-    generated_files = []
+    def _generate_stockyard_split_repeats_files(self):
+        all_generated_files = []
 
-    for i, group in enumerate(stockyard_recall_repeat_samples_grouped, 1):
-        generated_file_name = file_name + str(i) + '.txt'
-        stockyard_file = os.path.join(files_path, generated_file_name)
-        row = []
+        list_of_querysets = self._split_querysets()
 
-        for repeat in group:
-            if repeat:
-                row.append(repeat.accession)
+        for i, queryset in enumerate(list_of_querysets, 1):
+            generated_files_of_type = []
+            queryset_grouped = self._grouper(queryset, settings.STOCKYARD_GROUP_COUNT)
+            check_path(self._files_path)
 
-        row_to_write = ''
-        for element in row:
-            if row_to_write:
-                row_to_write += ',' + element
-            else:
-                row_to_write = element
+            for j, group in enumerate(queryset_grouped, 1):
+                generated_file_name = f'{self._file_name}{self._queryset_types[i]}-{str(j)}.txt'
+                self._save_row_to_file(group, generated_file_name)
+
+                generated_files_of_type.append(generated_file_name)
+                all_generated_files.append(generated_file_name)
+
+        return {
+            'files': all_generated_files,
+            'samples': len(self._stockyard_recall_repeat_samples)
+        }
+
+    def _split_querysets(self):
+        list_of_querysets = []
+
+        dupes = self._stockyard_recall_repeat_samples.values('accession').annotate(Count('id')).order_by().filter(
+            id__count__gt=1)
+
+        # getting multiple repeats and their ids
+        multiple = self._stockyard_recall_repeat_samples \
+            .filter(accession__in=[sample['accession'] for sample in dupes]) \
+            .exclude(comment__startswith='Interference')
+        multiple_ids = [rep.id for rep in multiple]
+        list_of_querysets.append(multiple)
+
+        # getting methdl repeats and their ids
+        methdl_repeats = self._stockyard_recall_repeat_samples.filter(batch_template='MethDL')
+        methdl_ids = [rep.id for rep in methdl_repeats]
+        list_of_querysets.append(methdl_repeats)
+
+        # getting repeats with dilution and their ids
+        dilution_repeats = self._stockyard_recall_repeat_samples.filter(comment__startswith='Interference')
+        dilution_ids = [rep.id for rep in dilution_repeats]
+        list_of_querysets.append(dilution_repeats)
+
+        # getting other repeats
+        ids = list(chain(multiple_ids, methdl_ids, dilution_ids))
+        stockyard_recall_repeat_samples = self._stockyard_recall_repeat_samples.exclude(id__in=ids)
+        list_of_querysets.append(stockyard_recall_repeat_samples)
+        return list_of_querysets
+
+    @staticmethod
+    def _grouper(iterable, n: int, fillvalue=None):
+        """
+        Collect data into fixed-length chunks or blocks
+        :param iterable: collection to group
+        :param n: how many elements in group
+        :param fillvalue: value to fill
+        :return: grouped collection
+        """
+        args = [iter(iterable)] * n
+        return zip_longest(fillvalue=fillvalue, *args)
+
+    @staticmethod
+    def _save_row_to_file(group, stockyard_file):
+        row = [repeat.accession for repeat in group if repeat]
+
+        row_to_write = row[0]
+        for element in row[1:]:
+            row_to_write += ',' + element
 
         row_to_write += '\n'
 
         stockyard_open = open(stockyard_file, 'w')
         stockyard_open.write(row_to_write)
         stockyard_open.close()
-
-        generated_files.append(generated_file_name)
-        i += 1
-
-    return {
-        'files': generated_files,
-        'samples': len(stockyard_recall_repeat_samples)
-    }
-
-
-def generate_stockyard_split_repeats_files():
-    queryset_types = {
-        1: 'multiple',
-        2: 'methdl',
-        3: 'dilution',
-        4: 'other'
-    }
-    excludes_list = ['Pain_MA', 'ETS_MA', 'Barbs_MA']
-
-    stockyard_recall_repeat_samples = Repeat.objects.filter(disabled=False, created__date=datetime.date.today(),
-                                                            laboratory__name='california') \
-        .exclude(reduce(operator.or_, (Q(batch_template__icontains=item) for item in excludes_list))) \
-        .exclude(comment__icontains="client requested")
-    no_of_samples = len(stockyard_recall_repeat_samples)
-
-    list_of_querysets = []
-
-    dupes = stockyard_recall_repeat_samples.values('accession').annotate(Count('id')).order_by().filter(id__count__gt=1)
-    multiple = stockyard_recall_repeat_samples.filter(accession__in=[sample['accession'] for sample in dupes])
-    multiple_ids = multiple.values('id')
-    list_of_querysets.append(multiple)
-
-    methdl_repeats = stockyard_recall_repeat_samples.filter(batch_template='METH_DL')
-    list_of_querysets.append(methdl_repeats)
-    meth_dl_ids = methdl_repeats.values('id')
-
-    dilution_repeats = stockyard_recall_repeat_samples.filter(comment__startswith='Interference')
-    list_of_querysets.append(dilution_repeats)
-    dilution_ids = dilution_repeats.values('id')
-
-    stockyard_recall_repeat_samples = stockyard_recall_repeat_samples \
-        .exclude(id__in=multiple_ids) \
-        .exclude(id__in=meth_dl_ids) \
-        .exclude(id__in=dilution_ids)
-    list_of_querysets.append(stockyard_recall_repeat_samples)
-
-    all_generated_files = []
-    for i, queryset in enumerate(list_of_querysets, 1):
-        generated_files_of_type = []
-        queryset_grouped = grouper(queryset, settings.STOCKYARD_GROUP_COUNT)
-        files_path = settings.LOCAL_STOCKYARD_SPLIT_REPEAT
-        check_path(files_path)
-        file_name = generate_file_name()
-
-        for j, group in enumerate(queryset_grouped, 1):
-            generated_file_name = file_name + f'{queryset_types[i]}-' + str(j) + '.txt'
-            stockyard_file = os.path.join(files_path, generated_file_name)
-            row = []
-
-            for repeat in group:
-                if repeat:
-                    row.append(repeat.accession)
-
-            row_to_write = ''
-            for element in row:
-                if row_to_write:
-                    row_to_write += ',' + element
-                else:
-                    row_to_write = element
-
-            row_to_write += '\n'
-
-            stockyard_open = open(stockyard_file, 'w')
-            stockyard_open.write(row_to_write)
-            stockyard_open.close()
-
-            generated_files_of_type.append(generated_file_name)
-            all_generated_files.append(generated_file_name)
-
-    return {
-        'files': all_generated_files,
-        'samples': no_of_samples
-    }
